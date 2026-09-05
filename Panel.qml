@@ -225,48 +225,60 @@ Panel {
 
             Repeater {
               model: root.projects
-              delegate: Column {
+              delegate: Button {
                 required property var modelData
                 width: body.width
-                spacing: Style.space(3)
-
-                RowLayout {
+                flat: true
+                leftPadding: Style.space(8)
+                rightPadding: Style.space(8)
+                topPadding: Style.space(8)
+                bottomPadding: Style.space(8)
+                background: Rectangle {
+                  color: hovered ? Qt.rgba(root.foreground.r, root.foreground.g, root.foreground.b, 0.10) : Qt.rgba(root.foreground.r, root.foreground.g, root.foreground.b, 0.04)
+                  radius: Style.space(6)
+                  border.width: hovered ? 1 : 0
+                  border.color: Qt.rgba(root.foreground.r, root.foreground.g, root.foreground.b, 0.18)
+                }
+                contentItem: Column {
                   width: parent.width
-                  spacing: Style.space(6)
-                  Text {
-                    Layout.fillWidth: true
-                    text: Model.shortWorktree(modelData.worktree) + " · " + modelData.sessions + " sess"
-                    color: root.foreground
-                    font.family: root.fontFamily
-                    font.pixelSize: Style.font.bodySmall
-                    font.bold: true
-                    elide: Text.ElideRight
+                  spacing: Style.space(3)
+                  RowLayout {
+                    width: parent.width
+                    spacing: Style.space(6)
+                    Text {
+                      Layout.fillWidth: true
+                      text: Model.shortWorktree(modelData.worktree) + " · " + modelData.sessions + " sess"
+                      color: root.foreground
+                      font.family: root.fontFamily
+                      font.pixelSize: Style.font.bodySmall
+                      font.bold: true
+                      elide: Text.ElideRight
+                    }
+                    Text {
+                      text: Model.costText(modelData.cost) + " · " + Model.tokenCount(modelData.tokens)
+                      color: root.dim
+                      font.family: root.fontFamily
+                      font.pixelSize: Style.font.caption
+                      font.bold: true
+                      elide: Text.ElideRight
+                    }
+                    Text {
+                      text: ""
+                      color: hovered ? root.foreground : root.dim
+                      font.family: root.fontFamily
+                      font.pixelSize: Style.font.bodySmall
+                    }
                   }
                   Text {
-                    text: Model.costText(modelData.cost) + " · " + Model.tokenCount(modelData.tokens)
+                    width: parent.width
+                    text: modelData.worktree
                     color: root.dim
                     font.family: root.fontFamily
                     font.pixelSize: Style.font.caption
-                    font.bold: true
                     elide: Text.ElideRight
                   }
-                  PanelActionButton {
-                    iconText: ""
-                    tooltipText: "Open " + modelData.worktree
-                    foreground: root.dim
-                    fontFamily: root.fontFamily
-                    onClicked: if (hostWidget && typeof hostWidget.newSessionAt === "function") hostWidget.newSessionAt(modelData.worktree)
-                  }
                 }
-
-                Text {
-                  width: parent.width
-                  text: modelData.worktree
-                  color: root.dim
-                  font.family: root.fontFamily
-                  font.pixelSize: Style.font.caption
-                  elide: Text.ElideRight
-                }
+                onClicked: if (hostWidget && typeof hostWidget.newSessionAt === "function") hostWidget.newSessionAt(modelData.worktree)
               }
             }
 

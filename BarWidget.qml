@@ -103,6 +103,23 @@ BarWidget {
     console.log("newSessionAt", path)
   }
 
+  function promptNewSession() {
+    // No FileDialog (crashes quickshell via gvfs/GTK). Use terminal prompt with readline tab-completion.
+    var cmd = "setsid xdg-terminal-exec bash -c '"
+            + "echo \"New opencode session — enter folder (tab complete, empty=cancel):\"; "
+            + "read -e -p \"> \" dir; "
+            + "dir=$(eval echo \"$dir\"); "
+            + "if [ -z \"$dir\" ]; then exit 0; fi; "
+            + "if [ ! -d \"$dir\" ]; then echo \"not a directory: $dir\"; read -p \"press enter\"; exit 1; fi; "
+            + "echo \"launching $dir...\"; "
+            + "if command -v xdg-terminal-exec >/dev/null 2>&1; then xdg-terminal-exec --dir=\"$dir\" opencode \"$dir\" & disown; "
+            + "elif command -v foot >/dev/null 2>&1; then foot --working-directory=\"$dir\" -e opencode \"$dir\" & disown; "
+            + "else opencode \"$dir\" & disown; fi' >/dev/null 2>&1 & disown"
+    newSessionProc.command = ["bash","-c",cmd]
+    newSessionProc.running = true
+    console.log("promptNewSession")
+  }
+
   IpcHandler {
     target: "io.github.srsergi0.omarchy-opencode-usage"
     function refresh(): void { root.refresh() }
@@ -110,6 +127,7 @@ BarWidget {
     function close(): void { root.close() }
     function toggle(): void { root.togglePanel() }
     function newSessionAt(path: string): void { root.newSessionAt(path) }
+    function promptNewSession(): void { root.promptNewSession() }
   }
 
   Process {
@@ -123,7 +141,7 @@ BarWidget {
   Process {
     id: collector
     command: []
-    stdout: StdioCollector { id: collectorOutput; waitForEnd: true; onStreamFinished: root.output = text }
+    stdout: StdioCollector { id: collectorOutput; waitForEnd: true; onStreamFinished: collector.output = text }
     stderr: StdioCollector { id: collectorStderr; waitForEnd: true }
     property string output: ""
     onExited: function(exitCode) {

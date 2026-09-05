@@ -4,7 +4,6 @@ import QtQuick.Layouts
 import QtQuick.Effects
 import Quickshell
 import Quickshell.Io
-import QtQuick.Dialogs
 import qs.Commons
 import qs.Ui
 import "Model.js" as Model
@@ -61,18 +60,9 @@ Panel {
     nowMs = Date.now()
   }
 
-  FileDialog {
-    id: folderDialog
-    title: "Select folder for new opencode session"
-    fileMode: FileDialog.Directory
-    onAccepted: {
-      var u = String(selectedFolder)
-      var path = u.replace(/^file:\/\//, "")
-      path = decodeURIComponent(path)
-      if (hostWidget && typeof hostWidget.newSessionAt === "function") hostWidget.newSessionAt(path)
-      else if (hostWidget && hostWidget.bar && hostWidget.bar.shell) console.log("newSessionAt not available", path)
-    }
-    onRejected: console.log("folderDialog rejected")
+  function promptNewSession() {
+    if (hostWidget && typeof hostWidget.promptNewSession === "function") hostWidget.promptNewSession()
+    else if (hostWidget && typeof hostWidget.newSessionAt === "function") hostWidget.newSessionAt(Quickshell.env("HOME") || "/home/srsergio")
   }
 
   onOpenedChanged: if (opened) {
@@ -211,10 +201,10 @@ Panel {
             }
             PanelActionButton {
               iconText: ""
-              tooltipText: "New session — pick folder"
+              tooltipText: "New session — enter folder (terminal prompt)"
               foreground: root.foreground
               fontFamily: root.fontFamily
-              onClicked: folderDialog.open()
+              onClicked: root.promptNewSession()
             }
           }
 

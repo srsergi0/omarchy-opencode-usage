@@ -259,20 +259,6 @@ Panel {
                   }
                 }
 
-                Rectangle {
-                  width: parent.width
-                  height: Style.space(5)
-                  radius: height / 2
-                  color: Qt.rgba(root.foreground.r, root.foreground.g, root.foreground.b, 0.22)
-                  Rectangle {
-                    width: parent.width * (root.projectMaxCost > 0 ? Number(modelData.cost) / root.projectMaxCost : 0)
-                    height: parent.height
-                    radius: parent.radius
-                    color: root.foreground
-                    Behavior on width { NumberAnimation { duration: 300; easing.type: Easing.OutCubic } }
-                  }
-                }
-
                 Text {
                   width: parent.width
                   text: modelData.worktree

@@ -285,16 +285,6 @@ Panel {
               }
             }
 
-            Text {
-              visible: projects.length > 0
-              width: parent.width
-              text: "Local · sqlite session 7d · sorted by cost"
-              color: root.dim
-              font.family: root.fontFamily
-              font.pixelSize: Style.font.caption
-              font.italic: true
-              horizontalAlignment: Text.AlignHCenter
-            }
           }
 
 

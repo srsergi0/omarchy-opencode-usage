@@ -25,6 +25,7 @@ BarWidget {
   property date lastUpdated: new Date(0)
   property double nowMs: Date.now()
   readonly property string collectorScript: decodeURIComponent(String(Qt.resolvedUrl("collector.sh")).replace(/^file:\/\//, ""))
+  readonly property string pickerScript: decodeURIComponent(String(Qt.resolvedUrl("picker.py")).replace(/^file:\/\//, ""))
 
   readonly property bool isDark: {
     var bg = Color.background
@@ -104,20 +105,12 @@ BarWidget {
   }
 
   function promptNewSession() {
-    // No FileDialog (crashes quickshell via gvfs/GTK). Use terminal prompt with readline tab-completion.
-    var cmd = "setsid xdg-terminal-exec bash -c '"
-            + "echo \"New opencode session — enter folder (tab complete, empty=cancel):\"; "
-            + "read -e -p \"> \" dir; "
-            + "dir=$(eval echo \"$dir\"); "
-            + "if [ -z \"$dir\" ]; then exit 0; fi; "
-            + "if [ ! -d \"$dir\" ]; then echo \"not a directory: $dir\"; read -p \"press enter\"; exit 1; fi; "
-            + "echo \"launching $dir...\"; "
-            + "if command -v xdg-terminal-exec >/dev/null 2>&1; then xdg-terminal-exec --dir=\"$dir\" opencode \"$dir\" & disown; "
-            + "elif command -v foot >/dev/null 2>&1; then foot --working-directory=\"$dir\" -e opencode \"$dir\" & disown; "
-            + "else opencode \"$dir\" & disown; fi' >/dev/null 2>&1 & disown"
-    newSessionProc.command = ["bash","-c",cmd]
-    newSessionProc.running = true
-    console.log("promptNewSession")
+    // Windows-like: external GTK picker (picker.py) — not FileDialog inside quickshell (which crashes gvfs)
+    if (pickerProc.running) return
+    // Use picker.py as external process to show native folder dialog
+    pickerProc.command = ["python3", root.pickerScript]
+    pickerProc.running = true
+    console.log("promptNewSession picker", root.pickerScript)
   }
 
   IpcHandler {
@@ -136,6 +129,23 @@ BarWidget {
     stdout: StdioCollector { waitForEnd: true }
     stderr: StdioCollector { waitForEnd: true }
     onExited: function(code){ console.log("newSessionAt exited", code, String(stdout.text||"").slice(0,200)) }
+  }
+
+  Process {
+    id: pickerProc
+    command: []
+    stdout: StdioCollector { id: pickerOut; waitForEnd: true }
+    stderr: StdioCollector { id: pickerErr; waitForEnd: true }
+    onExited: function(code){
+      var txt = String(pickerOut.text||"").trim()
+      if (txt) {
+        console.log("picker selected", txt)
+        root.newSessionAt(txt)
+      } else {
+        if (code !== 0) console.log("picker failed", code, String(pickerErr.text||"").slice(0,200))
+        else console.log("picker cancelled")
+      }
+    }
   }
 
   Process {

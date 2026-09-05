@@ -201,7 +201,7 @@ Panel {
             }
             PanelActionButton {
               iconText: ""
-              tooltipText: "New session — enter folder (terminal prompt)"
+              tooltipText: "New session — Windows-like file explorer"
               foreground: root.foreground
               fontFamily: root.fontFamily
               onClicked: root.promptNewSession()

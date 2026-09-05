@@ -4,6 +4,7 @@ import QtQuick.Layouts
 import QtQuick.Effects
 import Quickshell
 import Quickshell.Io
+import QtQuick.Dialogs
 import qs.Commons
 import qs.Ui
 import "Model.js" as Model
@@ -58,6 +59,20 @@ Panel {
   function refresh() {
     if (hostWidget && hostWidget.refresh) hostWidget.refresh()
     nowMs = Date.now()
+  }
+
+  FileDialog {
+    id: folderDialog
+    title: "Select folder for new opencode session"
+    fileMode: FileDialog.Directory
+    onAccepted: {
+      var u = String(selectedFolder)
+      var path = u.replace(/^file:\/\//, "")
+      path = decodeURIComponent(path)
+      if (hostWidget && typeof hostWidget.newSessionAt === "function") hostWidget.newSessionAt(path)
+      else if (hostWidget && hostWidget.bar && hostWidget.bar.shell) console.log("newSessionAt not available", path)
+    }
+    onRejected: console.log("folderDialog rejected")
   }
 
   onOpenedChanged: if (opened) {
@@ -186,10 +201,21 @@ Panel {
 
           PanelSeparator { width: parent.width; foreground: root.foreground }
 
-          PanelSectionHeader {
-            text: "PROJECTS — 7D COST (local)"
-            foreground: root.foreground
-            fontFamily: root.fontFamily
+          RowLayout {
+            width: parent.width
+            PanelSectionHeader {
+              Layout.fillWidth: true
+              text: "PROJECTS — 7D COST (local)"
+              foreground: root.foreground
+              fontFamily: root.fontFamily
+            }
+            PanelActionButton {
+              iconText: ""
+              tooltipText: "New session — pick folder"
+              foreground: root.foreground
+              fontFamily: root.fontFamily
+              onClicked: folderDialog.open()
+            }
           }
 
           Column {
@@ -209,54 +235,67 @@ Panel {
 
             Repeater {
               model: root.projects
-              delegate: Column {
+              delegate: Item {
                 required property var modelData
                 width: body.width
-                spacing: Style.space(3)
-
-                RowLayout {
+                height: col.implicitHeight
+                Column {
+                  id: col
                   width: parent.width
-                  spacing: Style.space(6)
-                  Text {
-                    Layout.fillWidth: true
-                    text: Model.shortWorktree(modelData.worktree) + " · " + modelData.sessions + " sess"
-                    color: root.foreground
-                    font.family: root.fontFamily
-                    font.pixelSize: Style.font.bodySmall
-                    font.bold: true
-                    elide: Text.ElideRight
+                  spacing: Style.space(3)
+
+                  RowLayout {
+                    width: parent.width
+                    spacing: Style.space(6)
+                    Text {
+                      Layout.fillWidth: true
+                      text: Model.shortWorktree(modelData.worktree) + " · " + modelData.sessions + " sess"
+                      color: root.foreground
+                      font.family: root.fontFamily
+                      font.pixelSize: Style.font.bodySmall
+                      font.bold: true
+                      elide: Text.ElideRight
+                    }
+                    Text {
+                      text: Model.costText(modelData.cost) + " · " + Model.tokenCount(modelData.tokens)
+                      color: root.dim
+                      font.family: root.fontFamily
+                      font.pixelSize: Style.font.caption
+                      font.bold: true
+                      elide: Text.ElideRight
+                    }
                   }
+
+                  Rectangle {
+                    width: parent.width
+                    height: Style.space(5)
+                    radius: height / 2
+                    color: Qt.rgba(root.foreground.r, root.foreground.g, root.foreground.b, 0.22)
+                    Rectangle {
+                      width: parent.width * (root.projectMaxCost > 0 ? Number(modelData.cost) / root.projectMaxCost : 0)
+                      height: parent.height
+                      radius: parent.radius
+                      color: root.foreground
+                      Behavior on width { NumberAnimation { duration: 300; easing.type: Easing.OutCubic } }
+                    }
+                  }
+
                   Text {
-                    text: Model.costText(modelData.cost) + " · " + Model.tokenCount(modelData.tokens)
+                    width: parent.width
+                    text: modelData.worktree + " — click to open"
                     color: root.dim
                     font.family: root.fontFamily
                     font.pixelSize: Style.font.caption
-                    font.bold: true
                     elide: Text.ElideRight
                   }
                 }
-
-                Rectangle {
-                  width: parent.width
-                  height: Style.space(5)
-                  radius: height / 2
-                  color: Qt.rgba(root.foreground.r, root.foreground.g, root.foreground.b, 0.22)
-                  Rectangle {
-                    width: parent.width * (root.projectMaxCost > 0 ? Number(modelData.cost) / root.projectMaxCost : 0)
-                    height: parent.height
-                    radius: parent.radius
-                    color: root.foreground
-                    Behavior on width { NumberAnimation { duration: 300; easing.type: Easing.OutCubic } }
+                MouseArea {
+                  anchors.fill: parent
+                  cursorShape: Qt.PointingHandCursor
+                  hoverEnabled: true
+                  onClicked: {
+                    if (hostWidget && typeof hostWidget.newSessionAt === "function") hostWidget.newSessionAt(modelData.worktree)
                   }
-                }
-
-                Text {
-                  width: parent.width
-                  text: modelData.worktree
-                  color: root.dim
-                  font.family: root.fontFamily
-                  font.pixelSize: Style.font.caption
-                  elide: Text.ElideRight
                 }
               }
             }

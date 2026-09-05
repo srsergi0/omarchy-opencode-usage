@@ -90,12 +90,34 @@ BarWidget {
     onLoaded: { root.injectPanel(); Qt.callLater(root.injectPanel) }
   }
 
+  function newSessionAt(path) {
+    if (!path) return
+    function esc(s){ return String(s).replace(/'/g,"'\\''"); }
+    var dir = esc(String(path))
+    var cmd = "dir='" + dir + "'; if [ ! -d \"$dir\" ]; then echo \"no dir $dir\" >&2; exit 1; fi; "
+            + "if command -v xdg-terminal-exec >/dev/null 2>&1; then setsid xdg-terminal-exec --dir=\"$dir\" opencode \"$dir\" >/dev/null 2>&1 & disown; "
+            + "elif command -v foot >/dev/null 2>&1; then setsid foot --working-directory=\"$dir\" -e opencode \"$dir\" >/dev/null 2>&1 & disown; "
+            + "else setsid bash -c 'cd \"'\"$dir\"'\" && opencode \"'\"$dir\"'\"' >/dev/null 2>&1 & disown; fi; echo \"launched $dir\""
+    newSessionProc.command = ["bash","-c",cmd]
+    newSessionProc.running = true
+    console.log("newSessionAt", path)
+  }
+
   IpcHandler {
     target: "io.github.srsergi0.omarchy-opencode-usage"
     function refresh(): void { root.refresh() }
     function open(): void { root.open() }
     function close(): void { root.close() }
     function toggle(): void { root.togglePanel() }
+    function newSessionAt(path: string): void { root.newSessionAt(path) }
+  }
+
+  Process {
+    id: newSessionProc
+    command: []
+    stdout: StdioCollector { waitForEnd: true }
+    stderr: StdioCollector { waitForEnd: true }
+    onExited: function(code){ console.log("newSessionAt exited", code, String(stdout.text||"").slice(0,200)) }
   }
 
   Process {

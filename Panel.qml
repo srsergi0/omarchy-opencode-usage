@@ -392,29 +392,6 @@ Panel {
       }
     }
 
-    RowLayout {
-      id: paceRow
-      width: card.width
-      visible: !!paceRow.weekly && paceRow.weekly.resetMs > 0
-      readonly property var weekly: Model.normalizeWindow(card.account ? card.account.weekly : null, "weekly", root.nowMs)
-
-      Text {
-        Layout.fillWidth: true
-        text: paceRow.weekly ? Model.paceText(paceRow.weekly, root.nowMs) : ""
-        color: Model.behindPace(paceRow.weekly, root.nowMs) ? root.urgent : root.dim
-        font.family: root.fontFamily
-        font.pixelSize: Style.font.caption
-      }
-
-      Text {
-        visible: !!paceRow.weekly
-        text: paceRow.weekly ? "Expected " + Model.percent(1 - Model.expectedRemaining(paceRow.weekly, root.nowMs)) + " used" : ""
-        color: root.dim
-        font.family: root.fontFamily
-        font.pixelSize: Style.font.caption
-      }
-    }
-
     PanelSeparator { width: parent.width; foreground: root.foreground }
   }
 }

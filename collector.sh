@@ -7,9 +7,13 @@ DB="$HOME/.local/share/opencode/opencode.db"
 key=$(jq -r '.["opencode-go"].key // empty' "$AUTH_JSON" 2>/dev/null || true)
 
 collect() {
-  local k=$1 out code
+  local k=$1 out code cfg
   [[ -n $k ]] || { echo '{"status":"No API key"}'; return; }
-  out=$(curl -sS -m 10 -w $'\n%{http_code}' -H "Authorization: Bearer $k" "$URL" 2>/dev/null) || { echo '{"status":"network error"}'; return; }
+  cfg=$(mktemp -t opencode-curl-XXXXXX)
+  chmod 600 "$cfg" 2>/dev/null || true
+  printf 'header = "Authorization: Bearer %s"\n' "$k" >"$cfg"
+  out=$(curl -sS -m 10 -w $'\n%{http_code}' -K "$cfg" "$URL" 2>/dev/null) || { rm -f "$cfg"; echo '{"status":"network error"}'; return; }
+  rm -f "$cfg"
   code=${out##*$'\n'}; out=${out%$'\n'*}
   [[ $code == 200 ]] || { jq -cn --arg s "HTTP $code" '{status:$s}'; return; }
   jq -e '.usage.rolling and .usage.weekly and .usage.monthly' >/dev/null 2>&1 <<<"$out" || { echo '{"status":"bad response"}'; return; }

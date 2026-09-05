@@ -76,6 +76,7 @@ function parseCollector(text) {
         account: account,
         recentDays: Array.isArray(parsed.recentDays) ? parsed.recentDays : [],
         heatmap: Array.isArray(parsed.heatmap) ? parsed.heatmap : [],
+        projects: Array.isArray(parsed.projects) ? parsed.projects : [],
         updatedAt: String(parsed.updatedAt || ""),
         error: String(parsed.error || "")
       }
@@ -181,6 +182,33 @@ function heatmapHourLabel(h) {
   return (h < 10 ? "0" : "") + h
 }
 
+function projectMaxCost(projects) {
+  var list = Array.isArray(projects) ? projects : []
+  var m = 0
+  for (var i = 0; i < list.length; i++) m = Math.max(m, number(list[i] && list[i].cost, 0))
+  return m
+}
+
+function projectMaxTokens(projects) {
+  var list = Array.isArray(projects) ? projects : []
+  var m = 0
+  for (var i = 0; i < list.length; i++) m = Math.max(m, number(list[i] && list[i].tokens, 0))
+  return m
+}
+
+function shortWorktree(path) {
+  var s = String(path || "")
+  if (s === "/") return "/ (global)"
+  var idx = s.lastIndexOf("/")
+  if (idx >= 0 && idx < s.length - 1) return s.slice(idx + 1)
+  return s
+}
+
+function costText(v) {
+  var n = number(v, 0)
+  return "$" + n.toFixed(n < 0.1 ? 4 : 2)
+}
+
 var exportsObject = {
   ROLLING_MS: ROLLING_MS,
   WEEK_MS: WEEK_MS,
@@ -204,7 +232,11 @@ var exportsObject = {
   heatmapPeak: heatmapPeak,
   heatmapDayTotal: heatmapDayTotal,
   lastNDates: lastNDates,
-  heatmapHourLabel: heatmapHourLabel
+  heatmapHourLabel: heatmapHourLabel,
+  projectMaxCost: projectMaxCost,
+  projectMaxTokens: projectMaxTokens,
+  shortWorktree: shortWorktree,
+  costText: costText
 }
 
 if (typeof module !== "undefined" && module.exports) module.exports = exportsObject

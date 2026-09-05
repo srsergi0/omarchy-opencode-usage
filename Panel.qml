@@ -19,8 +19,9 @@ Panel {
 
   // Mirror from hostWidget (collector auto-reads auth.json, no credentials needed)
   property var account: hostWidget ? hostWidget.account : null
-  property var recentDays: hostWidget ? hostWidget.recentDays : []
+  property var recentDays: hostWidget ? hostWidget.recentDays : [] // kept for collector compat, not shown
   property var heatmap: hostWidget ? hostWidget.heatmap : []
+  property var projects: hostWidget ? hostWidget.projects : []
   property string lastError: hostWidget ? String(hostWidget.lastError || "") : ""
   property date lastUpdated: hostWidget ? hostWidget.lastUpdated : new Date(0)
   property bool refreshing: hostWidget ? !!hostWidget.refreshing : false
@@ -31,6 +32,14 @@ Panel {
   readonly property var heatmapPeak: Model.heatmapPeak(heatmap)
   readonly property string heatmapToday: heatmapDates.length > 0 ? heatmapDates[heatmapDates.length - 1] : ""
   readonly property int heatmapTodayTotal: Model.heatmapDayTotal(heatmap, heatmapToday)
+
+  readonly property real projectMaxCost: Model.projectMaxCost(projects)
+  readonly property int projectTotalTokens: {
+    var s=0; for(var i=0;i<projects.length;i++) s+=Number(projects[i].tokens||0); return s
+  }
+  readonly property real projectTotalCost: {
+    var s=0; for(var i=0;i<projects.length;i++) s+=Number(projects[i].cost||0); return s
+  }
 
   readonly property color foreground: bar ? bar.barForeground : Color.foreground
   readonly property color urgent: bar ? bar.urgent : Color.urgent
@@ -175,87 +184,93 @@ Panel {
             account: root.account
           }
 
-          Item {
-            width: parent.width
-            implicitHeight: Math.max(usageHeader.implicitHeight, usageValue.implicitHeight)
+          PanelSeparator { width: parent.width; foreground: root.foreground }
 
-            PanelSectionHeader {
-              id: usageHeader
-              text: "RECENT USAGE"
-              foreground: root.foreground
-              fontFamily: root.fontFamily
-              anchors.left: parent.left
-              anchors.verticalCenter: parent.verticalCenter
-            }
+          PanelSectionHeader {
+            text: "PROJECTS — 7D COST (local)"
+            foreground: root.foreground
+            fontFamily: root.fontFamily
+          }
+
+          Column {
+            width: parent.width
+            spacing: Style.space(6)
 
             Text {
-              id: usageValue
-              visible: recentDays.length > 0
-              text: Model.tokenCount(Model.recentTotal(recentDays)) + " TOKENS"
+              width: parent.width
+              text: projects.length > 0
+                    ? Model.costText(projectTotalCost) + " · " + Model.tokenCount(projectTotalTokens) + " tok · " + projects.length + " projects · " + (function(){var c=0;for(var i=0;i<projects.length;i++)c+=Number(projects[i].sessions||0);return c})() + " sessions"
+                    : "No project data (requires opencode.db sessions >7d)"
               color: root.dim
               font.family: root.fontFamily
               font.pixelSize: Style.font.caption
-              font.bold: true
-              anchors.right: parent.right
-              anchors.rightMargin: Style.space(6)
-              anchors.verticalCenter: parent.verticalCenter
+              elide: Text.ElideRight
             }
-          }
-
-          Row {
-            width: parent.width
-            spacing: Style.space(4)
-            visible: recentDays.length > 0
 
             Repeater {
-              model: recentDays
-
+              model: root.projects
               delegate: Column {
                 required property var modelData
-                width: (body.width - Style.space(24)) / 7
+                width: body.width
+                spacing: Style.space(3)
 
-                Text {
+                RowLayout {
                   width: parent.width
-                  text: Model.tokenCount(modelData.tokens)
-                  color: root.dim
-                  font.family: root.fontFamily
-                  font.pixelSize: Style.font.caption
-                  horizontalAlignment: Text.AlignHCenter
+                  spacing: Style.space(6)
+                  Text {
+                    Layout.fillWidth: true
+                    text: Model.shortWorktree(modelData.worktree) + " · " + modelData.sessions + " sess"
+                    color: root.foreground
+                    font.family: root.fontFamily
+                    font.pixelSize: Style.font.bodySmall
+                    font.bold: true
+                    elide: Text.ElideRight
+                  }
+                  Text {
+                    text: Model.costText(modelData.cost) + " · " + Model.tokenCount(modelData.tokens)
+                    color: root.dim
+                    font.family: root.fontFamily
+                    font.pixelSize: Style.font.caption
+                    font.bold: true
+                    elide: Text.ElideRight
+                  }
                 }
 
-                Item {
+                Rectangle {
                   width: parent.width
-                  height: Style.space(28)
-
+                  height: Style.space(5)
+                  radius: height / 2
+                  color: Qt.rgba(root.foreground.r, root.foreground.g, root.foreground.b, 0.22)
                   Rectangle {
-                    anchors.bottom: parent.bottom
-                    anchors.horizontalCenter: parent.horizontalCenter
-                    width: Style.space(10)
-                    height: parent.height * Model.dayTokens(modelData) / Math.max(1, Model.recentPeak(recentDays))
+                    width: parent.width * (root.projectMaxCost > 0 ? Number(modelData.cost) / root.projectMaxCost : 0)
+                    height: parent.height
+                    radius: parent.radius
                     color: root.foreground
+                    Behavior on width { NumberAnimation { duration: 300; easing.type: Easing.OutCubic } }
                   }
                 }
 
                 Text {
                   width: parent.width
-                  text: Model.dayLabel(modelData.date)
+                  text: modelData.worktree
                   color: root.dim
                   font.family: root.fontFamily
                   font.pixelSize: Style.font.caption
-                  horizontalAlignment: Text.AlignHCenter
+                  elide: Text.ElideRight
                 }
               }
             }
-          }
-          Text {
-            visible: recentDays.length === 0
-            width: parent.width
-            text: "No recent token history (requires local opencode.db)"
-            color: root.dim
-            font.family: root.fontFamily
-            font.pixelSize: Style.font.caption
-            font.italic: true
-            horizontalAlignment: Text.AlignHCenter
+
+            Text {
+              visible: projects.length > 0
+              width: parent.width
+              text: "Local · sqlite session 7d · sorted by cost"
+              color: root.dim
+              font.family: root.fontFamily
+              font.pixelSize: Style.font.caption
+              font.italic: true
+              horizontalAlignment: Text.AlignHCenter
+            }
           }
 
           PanelSeparator { width: parent.width; foreground: root.foreground; visible: heatmap.length > 0 }

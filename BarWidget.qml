@@ -19,6 +19,7 @@ BarWidget {
   property var account: null
   property var recentDays: []
   property var heatmap: []
+  property var projects: []
   property bool refreshing: false
   property string lastError: ""
   property date lastUpdated: new Date(0)
@@ -115,6 +116,7 @@ BarWidget {
       root.account = parsed.data.account
       root.recentDays = parsed.data.recentDays
       root.heatmap = parsed.data.heatmap
+      root.projects = parsed.data.projects
       root.lastError = parsed.data.error
       root.lastUpdated = new Date()
       nowMs = Date.now()

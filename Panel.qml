@@ -226,6 +226,7 @@ Panel {
             Repeater {
               model: root.projects
               delegate: Column {
+                required property var modelData
                 width: body.width
                 spacing: Style.space(3)
 
@@ -335,7 +336,7 @@ Panel {
               Repeater {
                 model: 24
                 delegate: Text {
-                  property int index
+                  required property int index
                   width: (body.width - Style.space(32) - 23) / 24
                   text: index % 3 === 0 ? Model.heatmapHourLabel(index) : ""
                   color: root.dim
@@ -354,7 +355,7 @@ Panel {
               Repeater {
                 model: root.heatmapDates
                 delegate: Row {
-                  property var modelData
+                  required property var modelData
                   readonly property string d: String(modelData)
                   width: parent.width
                   spacing: 1
@@ -370,7 +371,7 @@ Panel {
                   Repeater {
                     model: 24
                     delegate: Rectangle {
-                      property int index
+                      required property int index
                       readonly property int hour: index
                       readonly property int tokens: Model.heatmapTokens(root.heatmap, d, hour)
                       readonly property real intensity: root.heatmapMaxTokens > 0 ? tokens / root.heatmapMaxTokens : 0
@@ -398,7 +399,7 @@ Panel {
                 Repeater {
                   model: [0.06, 0.3, 0.55, 0.8, 1.0]
                   delegate: Rectangle {
-                    property var modelData
+                    required property var modelData
                     width: Style.space(10)
                     height: Style.space(8)
                     radius: 2
@@ -417,7 +418,7 @@ Panel {
               Repeater {
                 model: 24
                 delegate: Item {
-                  property int index
+                  required property int index
                   readonly property int tokens: Model.heatmapTokens(root.heatmap, root.heatmapToday, index)
                   width: (body.width - Style.space(32) - 23) / 24
                   height: Style.space(14)
@@ -461,7 +462,7 @@ Panel {
 
   component AccountCard: Column {
     id: card
-    property var account
+    required property var account
     readonly property var windows: [
       { key: "rolling", label: "5h", dollars: 12 },
       { key: "weekly", label: "Weekly", dollars: 30 },
@@ -488,17 +489,17 @@ Panel {
 
       delegate: Column {
         id: windowRow
-        property var modelData
+        required property var modelData
         width: card.width
         spacing: Style.space(2)
-        readonly property var w: Model.normalizeWindow(card.account ? card.account[modelData.key] : null, modelData.key, root.nowMs)
+        readonly property var w: modelData ? Model.normalizeWindow(card.account ? card.account[modelData.key] : null, modelData.key, root.nowMs) : null
 
         RowLayout {
           width: parent.width
 
           Text {
             Layout.preferredWidth: Style.space(58)
-            text: modelData.label
+            text: modelData ? modelData.label : ""
             color: root.dim
             font.family: root.fontFamily
             font.pixelSize: Style.font.caption
@@ -509,7 +510,7 @@ Panel {
           Text {
             Layout.fillWidth: true
             text: windowRow.w
-              ? Model.percent(windowRow.w.percent) + " · $" + (windowRow.w.limitDollars || modelData.dollars)
+              ? Model.percent(windowRow.w.percent) + " · $" + (windowRow.w.limitDollars || (modelData ? modelData.dollars : 0))
               : (card.account && card.account.status && card.account.status !== "ok" ? card.account.status : "—")
             color: root.dim
             font.family: root.fontFamily
@@ -530,7 +531,7 @@ Panel {
             width: parent.width * (windowRow.w ? windowRow.w.percent : 0)
             height: parent.height
             radius: parent.radius
-            color: modelData.key === "weekly" && Model.behindPace(windowRow.w, root.nowMs) ? root.urgent : root.foreground
+            color: modelData && modelData.key === "weekly" && Model.behindPace(windowRow.w, root.nowMs) ? root.urgent : root.foreground
 
             Behavior on width { NumberAnimation { duration: 320; easing.type: Easing.OutCubic } }
             Behavior on color { ColorAnimation { duration: 60 } }

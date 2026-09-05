@@ -2,38 +2,25 @@
   "schemaVersion": 1,
   "id": "io.github.srsergi0.omarchy-opencode-usage",
   "name": "OpenCode Usage",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "author": "srsergio",
   "license": "MIT",
-  "description": "Unofficial bar widget for opencode-go: rolling 5h / weekly 7d / monthly 30d with model breakdown. No service key, just workspace + auth cookie.",
-
-  "kinds": ["bar-widget", "overlay"],
+  "description": "Bar widget for opencode-go: rolling 5h / weekly 7d / monthly 30d. Auto-reads key from ~/.local/share/opencode/auth.json, no credentials needed.",
+  "kinds": ["bar-widget"],
   "entryPoints": {
-    "barWidget": "BarWidget.qml",
-    "overlay": "Settings.qml"
+    "barWidget": "BarWidget.qml"
   },
   "barWidget": {
-    "displayName": "Opencode Usage (unofficial)",
-    "description": "Shows rolling 5h / weekly / monthly and resetInSec via stable HTML. No oc_sk_ needed.",
+    "displayName": "Opencode Usage",
+    "description": "Shows rolling / weekly / monthly usage via official Go API. No workspace or cookie required.",
     "category": "Info",
     "allowMultiple": false,
-    "defaultSection": "center",
+    "defaultSection": "right",
     "defaults": {
-      "workspaceId": "",
-      "authKey": "",
-      "serverId": "",
-      "detailsServerId": "",
-      "refreshIntervalSec": 15,
-      "hybridFallbackSec": 300
+      "refreshIntervalSec": 300
     },
     "schema": [
-      { "key": "workspaceId", "type": "string", "label": "Workspace ID", "defaultValue": "", "description": "ID like wrk_... from https://opencode.ai/workspace/<id>/usage (empty = set in settings)" },
-      { "key": "authKey", "type": "string", "label": "Auth cookie", "defaultValue": "", "description": "Value of auth=... cookie (DevTools → Application → Cookies → auth). Empty = ERR until configured. Expires ~1 year." },
-      { "key": "serverId", "type": "string", "label": "Server ID (auto)", "defaultValue": "", "description": "Auto-discovered from workspace HTML on first load. Empty = auto-discover, no manual update needed." },
-      { "key": "detailsServerId", "type": "string", "label": "Details Server ID (auto)", "defaultValue": "", "description": "Auto-discovered from workspace /go HTML on details fetch. Empty = auto-discover, no manual update needed." },
-      { "key": "connectionStatus", "type": "enum", "label": "Status", "options": ["disconnected", "connected"], "defaultValue": "disconnected", "description": "Auto: connected if auth+workspace valid and last fetch OK, disconnected on ERR. Read-only — updated by widget." },
-      { "key": "refreshIntervalSec", "type": "integer", "label": "Fast refresh _server (s)", "min": 15, "max": 3600, "step": 15, "defaultValue": 15 },
-      { "key": "hybridFallbackSec", "type": "integer", "label": "Fallback HTML (s)", "min": 60, "max": 3600, "step": 60, "defaultValue": 300 }
+      { "key": "refreshIntervalSec", "type": "integer", "label": "Refresh interval (seconds)", "min": 60, "max": 3600, "step": 60, "defaultValue": 300 }
     ]
   }
 }

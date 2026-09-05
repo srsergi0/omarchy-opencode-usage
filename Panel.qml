@@ -20,10 +20,17 @@ Panel {
   // Mirror from hostWidget (collector auto-reads auth.json, no credentials needed)
   property var account: hostWidget ? hostWidget.account : null
   property var recentDays: hostWidget ? hostWidget.recentDays : []
+  property var heatmap: hostWidget ? hostWidget.heatmap : []
   property string lastError: hostWidget ? String(hostWidget.lastError || "") : ""
   property date lastUpdated: hostWidget ? hostWidget.lastUpdated : new Date(0)
   property bool refreshing: hostWidget ? !!hostWidget.refreshing : false
   property double nowMs: hostWidget ? hostWidget.nowMs : Date.now()
+
+  readonly property var heatmapDates: Model.lastNDates(7)
+  readonly property int heatmapMaxTokens: Model.heatmapMax(heatmap)
+  readonly property var heatmapPeak: Model.heatmapPeak(heatmap)
+  readonly property string heatmapToday: heatmapDates.length > 0 ? heatmapDates[heatmapDates.length - 1] : ""
+  readonly property int heatmapTodayTotal: Model.heatmapDayTotal(heatmap, heatmapToday)
 
   readonly property color foreground: bar ? bar.barForeground : Color.foreground
   readonly property color urgent: bar ? bar.urgent : Color.urgent
@@ -244,6 +251,166 @@ Panel {
             visible: recentDays.length === 0
             width: parent.width
             text: "No recent token history (requires local opencode.db)"
+            color: root.dim
+            font.family: root.fontFamily
+            font.pixelSize: Style.font.caption
+            font.italic: true
+            horizontalAlignment: Text.AlignHCenter
+          }
+
+          PanelSeparator { width: parent.width; foreground: root.foreground; visible: heatmap.length > 0 }
+
+          PanelSectionHeader {
+            visible: heatmap.length > 0
+            text: "HOURLY HEATMAP — 7D × 24H (local)"
+            foreground: root.foreground
+            fontFamily: root.fontFamily
+          }
+
+          Column {
+            visible: heatmap.length > 0
+            width: parent.width
+            spacing: Style.space(4)
+
+            Text {
+              width: parent.width
+              text: heatmapPeak ? "Peak " + heatmapPeak.date + " " + Model.heatmapHourLabel(heatmapPeak.hour) + "h · " + Model.tokenCount(heatmapPeak.tokens) + " · " + heatmapPeak.count + " msgs" : "No hourly data"
+              color: root.dim
+              font.family: root.fontFamily
+              font.pixelSize: Style.font.caption
+              elide: Text.ElideRight
+            }
+            Text {
+              width: parent.width
+              text: "Today " + heatmapToday + " · " + Model.tokenCount(heatmapTodayTotal) + " tokens" + (heatmapMaxTokens > 0 ? " · max " + Model.tokenCount(heatmapMaxTokens) + "/h" : "")
+              color: root.dim
+              font.family: root.fontFamily
+              font.pixelSize: Style.font.caption
+              font.italic: true
+              elide: Text.ElideRight
+            }
+
+            // Hour header
+            Row {
+              width: parent.width
+              spacing: 1
+              Item { width: Style.space(32); height: Style.space(10) }
+              Repeater {
+                model: 24
+                delegate: Text {
+                  required property int index
+                  width: (body.width - Style.space(32) - 23) / 24
+                  text: index % 3 === 0 ? Model.heatmapHourLabel(index) : ""
+                  color: root.dim
+                  font.family: root.fontFamily
+                  font.pixelSize: 8
+                  horizontalAlignment: Text.AlignHCenter
+                  elide: Text.ElideRight
+                }
+              }
+            }
+
+            // 7 rows × 24 cols
+            Column {
+              width: parent.width
+              spacing: 1
+              Repeater {
+                model: root.heatmapDates
+                delegate: Row {
+                  required property var modelData
+                  readonly property string d: String(modelData)
+                  width: parent.width
+                  spacing: 1
+                  Text {
+                    width: Style.space(32)
+                    text: Model.dayLabel(d) + " " + d.slice(5)
+                    color: root.dim
+                    font.family: root.fontFamily
+                    font.pixelSize: 8
+                    anchors.verticalCenter: parent.verticalCenter
+                    elide: Text.ElideRight
+                  }
+                  Repeater {
+                    model: 24
+                    delegate: Rectangle {
+                      required property int index
+                      readonly property int hour: index
+                      readonly property int tokens: Model.heatmapTokens(root.heatmap, d, hour)
+                      readonly property real intensity: root.heatmapMaxTokens > 0 ? tokens / root.heatmapMaxTokens : 0
+                      width: (body.width - Style.space(32) - 23) / 24
+                      height: Style.space(12)
+                      radius: 2
+                      color: tokens > 0 ? Qt.rgba(root.foreground.r, root.foreground.g, root.foreground.b, 0.15 + 0.85 * intensity) : Qt.rgba(root.foreground.r, root.foreground.g, root.foreground.b, 0.06)
+                      border.width: d === root.heatmapToday && hour === new Date().getHours() ? 1 : 0
+                      border.color: root.foreground
+                    }
+                  }
+                }
+              }
+            }
+
+            // Legend + burn rate sparkline for today
+            Row {
+              width: parent.width
+              spacing: Style.space(6)
+              anchors.horizontalCenter: parent.horizontalCenter
+              Text { text: "less"; color: root.dim; font.family: root.fontFamily; font.pixelSize: 8; anchors.verticalCenter: parent.verticalCenter }
+              Row {
+                spacing: 1
+                anchors.verticalCenter: parent.verticalCenter
+                Repeater {
+                  model: [0.06, 0.3, 0.55, 0.8, 1.0]
+                  delegate: Rectangle {
+                    required property var modelData
+                    width: Style.space(10)
+                    height: Style.space(8)
+                    radius: 2
+                    color: Qt.rgba(root.foreground.r, root.foreground.g, root.foreground.b, 0.15 + 0.85 * modelData)
+                  }
+                }
+              }
+              Text { text: "more"; color: root.dim; font.family: root.fontFamily; font.pixelSize: 8; anchors.verticalCenter: parent.verticalCenter }
+            }
+
+            // Burn rate mini bars for today
+            Row {
+              width: parent.width
+              spacing: 1
+              Item { width: Style.space(32); height: Style.space(14) }
+              Repeater {
+                model: 24
+                delegate: Item {
+                  required property int index
+                  readonly property int tokens: Model.heatmapTokens(root.heatmap, root.heatmapToday, index)
+                  width: (body.width - Style.space(32) - 23) / 24
+                  height: Style.space(14)
+                  Rectangle {
+                    anchors.bottom: parent.bottom
+                    anchors.horizontalCenter: parent.horizontalCenter
+                    width: parent.width * 0.8
+                    height: parent.height * (root.heatmapMaxTokens > 0 ? tokens / root.heatmapMaxTokens : 0)
+                    color: root.foreground
+                    opacity: 0.9
+                    radius: 1
+                  }
+                }
+              }
+            }
+            Text {
+              width: parent.width
+              text: heatmap.length > 0 ? "Local · sqlite opencode.db · 7d · counts per hour (localtime)" : ""
+              color: root.dim
+              font.family: root.fontFamily
+              font.pixelSize: Style.font.caption
+              font.italic: true
+              horizontalAlignment: Text.AlignHCenter
+            }
+          }
+
+          Text {
+            visible: heatmap.length === 0
+            width: parent.width
+            text: "No hourly data (requires opencode.db)"
             color: root.dim
             font.family: root.fontFamily
             font.pixelSize: Style.font.caption

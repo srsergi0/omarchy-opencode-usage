@@ -18,6 +18,7 @@ BarWidget {
   // Data from collector — auto-reads ~/.local/share/opencode/auth.json (opencode-go key)
   property var account: null
   property var recentDays: []
+  property var heatmap: []
   property bool refreshing: false
   property string lastError: ""
   property date lastUpdated: new Date(0)
@@ -113,6 +114,7 @@ BarWidget {
       if (!parsed.ok) { root.lastError = parsed.error; return }
       root.account = parsed.data.account
       root.recentDays = parsed.data.recentDays
+      root.heatmap = parsed.data.heatmap
       root.lastError = parsed.data.error
       root.lastUpdated = new Date()
       nowMs = Date.now()

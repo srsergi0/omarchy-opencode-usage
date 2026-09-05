@@ -75,6 +75,7 @@ function parseCollector(text) {
       data: {
         account: account,
         recentDays: Array.isArray(parsed.recentDays) ? parsed.recentDays : [],
+        heatmap: Array.isArray(parsed.heatmap) ? parsed.heatmap : [],
         updatedAt: String(parsed.updatedAt || ""),
         error: String(parsed.error || "")
       }
@@ -131,6 +132,55 @@ function dayLabel(value) {
   return ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"][date.getDay()]
 }
 
+function heatmapMax(heatmap) {
+  var list = Array.isArray(heatmap) ? heatmap : []
+  var m = 0
+  for (var i = 0; i < list.length; i++) m = Math.max(m, number(list[i] && list[i].tokens, 0))
+  return m
+}
+
+function heatmapTokens(heatmap, dateStr, hour) {
+  var list = Array.isArray(heatmap) ? heatmap : []
+  for (var i = 0; i < list.length; i++) {
+    var e = list[i]
+    if (e && e.date === dateStr && number(e.hour, -1) === hour) return number(e.tokens, 0)
+  }
+  return 0
+}
+
+function heatmapPeak(heatmap) {
+  var list = Array.isArray(heatmap) ? heatmap : []
+  var best = null
+  for (var i = 0; i < list.length; i++) {
+    var e = list[i]
+    if (!e) continue
+    if (!best || number(e.tokens, 0) > number(best.tokens, 0)) best = e
+  }
+  return best
+}
+
+function heatmapDayTotal(heatmap, dateStr) {
+  var list = Array.isArray(heatmap) ? heatmap : []
+  var t = 0
+  for (var i = 0; i < list.length; i++) if (list[i] && list[i].date === dateStr) t += number(list[i].tokens, 0)
+  return t
+}
+
+function lastNDates(n) {
+  var out = []
+  var now = new Date()
+  for (var i = n - 1; i >= 0; i--) {
+    var d = new Date(now.getFullYear(), now.getMonth(), now.getDate() - i)
+    var y = d.getFullYear(), m = String(d.getMonth() + 1).padStart(2, "0"), day = String(d.getDate()).padStart(2, "0")
+    out.push(y + "-" + m + "-" + day)
+  }
+  return out
+}
+
+function heatmapHourLabel(h) {
+  return (h < 10 ? "0" : "") + h
+}
+
 var exportsObject = {
   ROLLING_MS: ROLLING_MS,
   WEEK_MS: WEEK_MS,
@@ -148,7 +198,13 @@ var exportsObject = {
   dayTokens: dayTokens,
   recentTotal: recentTotal,
   recentPeak: recentPeak,
-  dayLabel: dayLabel
+  dayLabel: dayLabel,
+  heatmapMax: heatmapMax,
+  heatmapTokens: heatmapTokens,
+  heatmapPeak: heatmapPeak,
+  heatmapDayTotal: heatmapDayTotal,
+  lastNDates: lastNDates,
+  heatmapHourLabel: heatmapHourLabel
 }
 
 if (typeof module !== "undefined" && module.exports) module.exports = exportsObject

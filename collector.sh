@@ -28,10 +28,14 @@ error=''
 
 cutoff=$(( $(date +%s)*1000-604800000 ))
 recent='[]'
+heatmap='[]'
 if [[ -r $DB ]]; then
-  q="SELECT date(time_created/1000,'unixepoch'),SUM(COALESCE(json_extract(data,'\$.tokens.total'),0)),ROUND(SUM(COALESCE(json_extract(data,'\$.cost'),0)),4) FROM message WHERE time_created > $cutoff AND json_extract(data,'\$.providerID')='opencode-go' GROUP BY 1 ORDER BY 1;"
+  q="SELECT date(time_created/1000,'unixepoch','localtime'),SUM(COALESCE(json_extract(data,'\$.tokens.total'),0)),ROUND(SUM(COALESCE(json_extract(data,'\$.cost'),0)),4) FROM message WHERE time_created > $cutoff AND json_extract(data,'\$.providerID')='opencode-go' GROUP BY 1 ORDER BY 1;"
   rows=$(sqlite3 -readonly "file:$DB?mode=ro" "$q" 2>/dev/null || true)
   while IFS='|' read -r d t c; do [[ -n $d ]] && recent=$(jq -c --arg d "$d" --arg t "${t:-0}" --arg c "${c:-0}" '.+[{date:$d,tokens:($t|tonumber),cost:($c|tonumber)}]' <<<"$recent"); done <<<"$rows"
+  qh="SELECT date(time_created/1000,'unixepoch','localtime'),strftime('%H',time_created/1000,'unixepoch','localtime'),SUM(COALESCE(json_extract(data,'\$.tokens.total'),0)),ROUND(SUM(COALESCE(json_extract(data,'\$.cost'),0)),4),COUNT(*) FROM message WHERE time_created > $cutoff AND json_extract(data,'\$.providerID')='opencode-go' GROUP BY 1,2 ORDER BY 1,2;"
+  rows=$(sqlite3 -readonly "file:$DB?mode=ro" "$qh" 2>/dev/null || true)
+  while IFS='|' read -r d h t c n; do [[ -n $d ]] && heatmap=$(jq -c --arg d "$d" --arg h "$h" --arg t "${t:-0}" --arg c "${c:-0}" --arg n "${n:-0}" '.+[{date:$d,hour:($h|tonumber),tokens:($t|tonumber),cost:($c|tonumber),count:($n|tonumber)}]' <<<"$heatmap"); done <<<"$rows"
 fi
 
-jq -cn --arg label "Go" --argjson w "$windows" --argjson recent "$recent" --arg status "$status" --arg error "$error" '{label:$label,status:$status,rolling:$w.rolling,weekly:$w.weekly,monthly:$w.monthly,recentDays:$recent,updatedAt:(now|todateiso8601),error:$error}'
+jq -cn --arg label "Go" --argjson w "$windows" --argjson recent "$recent" --argjson heatmap "$heatmap" --arg status "$status" --arg error "$error" '{label:$label,status:$status,rolling:$w.rolling,weekly:$w.weekly,monthly:$w.monthly,recentDays:$recent,heatmap:$heatmap,updatedAt:(now|todateiso8601),error:$error}'

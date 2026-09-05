@@ -225,22 +225,19 @@ Panel {
 
             Repeater {
               model: root.projects
-              delegate: Button {
+              delegate: Rectangle {
                 required property var modelData
                 width: body.width
-                flat: true
-                leftPadding: Style.space(8)
-                rightPadding: Style.space(8)
-                topPadding: Style.space(8)
-                bottomPadding: Style.space(8)
-                background: Rectangle {
-                  color: hovered ? Qt.rgba(root.foreground.r, root.foreground.g, root.foreground.b, 0.10) : Qt.rgba(root.foreground.r, root.foreground.g, root.foreground.b, 0.04)
-                  radius: Style.space(6)
-                  border.width: hovered ? 1 : 0
-                  border.color: Qt.rgba(root.foreground.r, root.foreground.g, root.foreground.b, 0.18)
-                }
-                contentItem: Column {
-                  width: parent.width
+                height: col.implicitHeight + Style.space(8) * 2
+                color: ma.containsMouse ? Qt.rgba(root.foreground.r, root.foreground.g, root.foreground.b, 0.08) : "transparent"
+                radius: Style.space(6)
+                border.width: ma.containsMouse ? 1 : 0
+                border.color: Qt.rgba(root.foreground.r, root.foreground.g, root.foreground.b, 0.15)
+
+                Column {
+                  id: col
+                  anchors.centerIn: parent
+                  width: parent.width - Style.space(8) * 2
                   spacing: Style.space(3)
                   RowLayout {
                     width: parent.width
@@ -264,7 +261,7 @@ Panel {
                     }
                     Text {
                       text: ""
-                      color: hovered ? root.foreground : root.dim
+                      color: ma.containsMouse ? root.foreground : root.dim
                       font.family: root.fontFamily
                       font.pixelSize: Style.font.bodySmall
                     }
@@ -278,7 +275,13 @@ Panel {
                     elide: Text.ElideRight
                   }
                 }
-                onClicked: if (hostWidget && typeof hostWidget.newSessionAt === "function") hostWidget.newSessionAt(modelData.worktree)
+                MouseArea {
+                  id: ma
+                  anchors.fill: parent
+                  hoverEnabled: true
+                  cursorShape: Qt.PointingHandCursor
+                  onClicked: if (hostWidget && typeof hostWidget.newSessionAt === "function") hostWidget.newSessionAt(modelData.worktree)
+                }
               }
             }
 

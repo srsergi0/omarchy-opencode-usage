@@ -225,67 +225,60 @@ Panel {
 
             Repeater {
               model: root.projects
-              delegate: Item {
-                required property var modelData
+              delegate: Column {
                 width: body.width
-                height: col.implicitHeight
-                Column {
-                  id: col
+                spacing: Style.space(3)
+
+                RowLayout {
                   width: parent.width
-                  spacing: Style.space(3)
-
-                  RowLayout {
-                    width: parent.width
-                    spacing: Style.space(6)
-                    Text {
-                      Layout.fillWidth: true
-                      text: Model.shortWorktree(modelData.worktree) + " · " + modelData.sessions + " sess"
-                      color: root.foreground
-                      font.family: root.fontFamily
-                      font.pixelSize: Style.font.bodySmall
-                      font.bold: true
-                      elide: Text.ElideRight
-                    }
-                    Text {
-                      text: Model.costText(modelData.cost) + " · " + Model.tokenCount(modelData.tokens)
-                      color: root.dim
-                      font.family: root.fontFamily
-                      font.pixelSize: Style.font.caption
-                      font.bold: true
-                      elide: Text.ElideRight
-                    }
-                  }
-
-                  Rectangle {
-                    width: parent.width
-                    height: Style.space(5)
-                    radius: height / 2
-                    color: Qt.rgba(root.foreground.r, root.foreground.g, root.foreground.b, 0.22)
-                    Rectangle {
-                      width: parent.width * (root.projectMaxCost > 0 ? Number(modelData.cost) / root.projectMaxCost : 0)
-                      height: parent.height
-                      radius: parent.radius
-                      color: root.foreground
-                      Behavior on width { NumberAnimation { duration: 300; easing.type: Easing.OutCubic } }
-                    }
-                  }
-
+                  spacing: Style.space(6)
                   Text {
-                    width: parent.width
-                    text: modelData.worktree + " — click to open"
+                    Layout.fillWidth: true
+                    text: Model.shortWorktree(modelData.worktree) + " · " + modelData.sessions + " sess"
+                    color: root.foreground
+                    font.family: root.fontFamily
+                    font.pixelSize: Style.font.bodySmall
+                    font.bold: true
+                    elide: Text.ElideRight
+                  }
+                  Text {
+                    text: Model.costText(modelData.cost) + " · " + Model.tokenCount(modelData.tokens)
                     color: root.dim
                     font.family: root.fontFamily
                     font.pixelSize: Style.font.caption
+                    font.bold: true
                     elide: Text.ElideRight
                   }
-                }
-                MouseArea {
-                  anchors.fill: parent
-                  cursorShape: Qt.PointingHandCursor
-                  hoverEnabled: true
-                  onClicked: {
-                    if (hostWidget && typeof hostWidget.newSessionAt === "function") hostWidget.newSessionAt(modelData.worktree)
+                  PanelActionButton {
+                    iconText: ""
+                    tooltipText: "Open " + modelData.worktree
+                    foreground: root.dim
+                    fontFamily: root.fontFamily
+                    onClicked: if (hostWidget && typeof hostWidget.newSessionAt === "function") hostWidget.newSessionAt(modelData.worktree)
                   }
+                }
+
+                Rectangle {
+                  width: parent.width
+                  height: Style.space(5)
+                  radius: height / 2
+                  color: Qt.rgba(root.foreground.r, root.foreground.g, root.foreground.b, 0.22)
+                  Rectangle {
+                    width: parent.width * (root.projectMaxCost > 0 ? Number(modelData.cost) / root.projectMaxCost : 0)
+                    height: parent.height
+                    radius: parent.radius
+                    color: root.foreground
+                    Behavior on width { NumberAnimation { duration: 300; easing.type: Easing.OutCubic } }
+                  }
+                }
+
+                Text {
+                  width: parent.width
+                  text: modelData.worktree
+                  color: root.dim
+                  font.family: root.fontFamily
+                  font.pixelSize: Style.font.caption
+                  elide: Text.ElideRight
                 }
               }
             }
@@ -342,7 +335,7 @@ Panel {
               Repeater {
                 model: 24
                 delegate: Text {
-                  required property int index
+                  property int index
                   width: (body.width - Style.space(32) - 23) / 24
                   text: index % 3 === 0 ? Model.heatmapHourLabel(index) : ""
                   color: root.dim
@@ -361,7 +354,7 @@ Panel {
               Repeater {
                 model: root.heatmapDates
                 delegate: Row {
-                  required property var modelData
+                  property var modelData
                   readonly property string d: String(modelData)
                   width: parent.width
                   spacing: 1
@@ -377,7 +370,7 @@ Panel {
                   Repeater {
                     model: 24
                     delegate: Rectangle {
-                      required property int index
+                      property int index
                       readonly property int hour: index
                       readonly property int tokens: Model.heatmapTokens(root.heatmap, d, hour)
                       readonly property real intensity: root.heatmapMaxTokens > 0 ? tokens / root.heatmapMaxTokens : 0
@@ -405,7 +398,7 @@ Panel {
                 Repeater {
                   model: [0.06, 0.3, 0.55, 0.8, 1.0]
                   delegate: Rectangle {
-                    required property var modelData
+                    property var modelData
                     width: Style.space(10)
                     height: Style.space(8)
                     radius: 2
@@ -424,7 +417,7 @@ Panel {
               Repeater {
                 model: 24
                 delegate: Item {
-                  required property int index
+                  property int index
                   readonly property int tokens: Model.heatmapTokens(root.heatmap, root.heatmapToday, index)
                   width: (body.width - Style.space(32) - 23) / 24
                   height: Style.space(14)
@@ -468,7 +461,7 @@ Panel {
 
   component AccountCard: Column {
     id: card
-    required property var account
+    property var account
     readonly property var windows: [
       { key: "rolling", label: "5h", dollars: 12 },
       { key: "weekly", label: "Weekly", dollars: 30 },
@@ -495,7 +488,7 @@ Panel {
 
       delegate: Column {
         id: windowRow
-        required property var modelData
+        property var modelData
         width: card.width
         spacing: Style.space(2)
         readonly property var w: Model.normalizeWindow(card.account ? card.account[modelData.key] : null, modelData.key, root.nowMs)
